@@ -90,10 +90,10 @@ function Logo({ variant = "default" }) {
         </svg>
         )}
       </div>
-      <div className="logo-text-wrapper">
+      {/* <div className="logo-text-wrapper">
         <span className="logo-text-shop">Shop</span>
         <span className={`logo-text-vibe logo-text-vibe-${uniqueId}`}>Swift</span>
-      </div>
+      </div> */}
     </div>
   );
 }
