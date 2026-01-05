@@ -164,6 +164,53 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
+.discount-section {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.discount-input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.discount-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.discount-input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.apply-discount-btn {
+  padding: 12px 24px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.apply-discount-btn:hover:not(:disabled) {
+  background: #764ba2;
+}
+
+.apply-discount-btn:disabled {
+  background: #10b981;
+  cursor: not-allowed;
+}
+
 .summary-row {
   display: flex;
   justify-content: space-between;
@@ -171,6 +218,10 @@
   font-size: 16px;
   color: #666;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-row.discount {
+  color: #10b981;
 }
 
 .summary-row.total {

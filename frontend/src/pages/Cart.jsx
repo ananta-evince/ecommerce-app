@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -6,6 +7,27 @@ import "./Cart.css";
 function Cart() {
   const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
   const navigate = useNavigate();
+  const [discountCode, setDiscountCode] = useState("");
+  const [discount, setDiscount] = useState(0);
+  const [appliedDiscount, setAppliedDiscount] = useState(false);
+
+  const subtotal = getCartTotal();
+  const tax = subtotal * 0.18; // 18% GST
+  const shipping = subtotal >= 999 ? 0 : 50;
+  const discountAmount = discount;
+  const total = subtotal + tax + shipping - discountAmount;
+
+  const handleApplyDiscount = () => {
+    if (discountCode.toUpperCase() === "SAVE10") {
+      setDiscount(subtotal * 0.1);
+      setAppliedDiscount(true);
+    } else if (discountCode.toUpperCase() === "WELCOME20") {
+      setDiscount(subtotal * 0.2);
+      setAppliedDiscount(true);
+    } else {
+      alert("Invalid discount code");
+    }
+  };
 
   if (cart.length === 0) {
     return (
@@ -99,17 +121,44 @@ function Cart() {
         </div>
 
         <div className="cart-summary">
+          <div className="discount-section">
+            <input
+              type="text"
+              placeholder="Enter discount code"
+              value={discountCode}
+              onChange={(e) => setDiscountCode(e.target.value)}
+              className="discount-input"
+              disabled={appliedDiscount}
+            />
+            <button
+              onClick={handleApplyDiscount}
+              className="apply-discount-btn"
+              disabled={appliedDiscount}
+            >
+              {appliedDiscount ? "Applied" : "Apply"}
+            </button>
+          </div>
           <div className="summary-row">
             <span>Subtotal:</span>
-            <span>₹{getCartTotal()}</span>
+            <span>₹{subtotal.toLocaleString()}</span>
+          </div>
+          {discountAmount > 0 && (
+            <div className="summary-row discount">
+              <span>Discount:</span>
+              <span>-₹{discountAmount.toLocaleString()}</span>
+            </div>
+          )}
+          <div className="summary-row">
+            <span>Tax (GST 18%):</span>
+            <span>₹{tax.toFixed(2)}</span>
           </div>
           <div className="summary-row">
             <span>Shipping:</span>
-            <span>Free</span>
+            <span>{shipping === 0 ? "Free" : `₹${shipping}`}</span>
           </div>
           <div className="summary-row total">
             <span>Total:</span>
-            <span>₹{getCartTotal()}</span>
+            <span>₹{total.toFixed(2)}</span>
           </div>
           <button 
             className="checkout-btn"

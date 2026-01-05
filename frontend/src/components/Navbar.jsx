@@ -42,10 +42,13 @@ function Navbar({ onSearch }) {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (onSearch) {
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setSearchOpen(false);
+      setSearchQuery("");
+    } else if (onSearch) {
       onSearch(searchQuery);
     }
-    setSearchOpen(false);
   };
 
   const cartCount = getCartCount();
@@ -79,9 +82,18 @@ function Navbar({ onSearch }) {
 
           <div className="navbar-menu">
             <Link to="/home" className="nav-menu-item active">Home</Link>
-            <Link to="/about" className="nav-menu-item">About us</Link>
-            <Link to="/home" className="nav-menu-item">Product</Link>
-            <Link to="/blog" className="nav-menu-item">Blog</Link>
+            <Link to="/products" className="nav-menu-item">Products</Link>
+            <div className="nav-dropdown">
+              <button className="nav-menu-item">Categories</button>
+              <div className="dropdown-content">
+                <Link to="/category/men">Men</Link>
+                <Link to="/category/girls">Women</Link>
+                <Link to="/category/kids">Kids</Link>
+                <Link to="/products">All Products</Link>
+              </div>
+            </div>
+            <Link to="/about" className="nav-menu-item">About</Link>
+            <Link to="/contact" className="nav-menu-item">Contact</Link>
           </div>
 
           <form className={`navbar-search ${searchOpen ? 'search-open' : ''}`} onSubmit={handleSearch}>
@@ -124,12 +136,30 @@ function Navbar({ onSearch }) {
                 {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
               </div>
             </Link>
-            <button onClick={handleLogout} className="logout-button">
-              <span className="logout-text">Logout</span>
-              <svg className="logout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-              </svg>
-            </button>
+            {user ? (
+              <div className="account-menu">
+                <Link to="/account" className="account-link">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>Account</span>
+                </Link>
+                <button onClick={handleLogout} className="logout-button">
+                  <span className="logout-text">Logout</span>
+                  <svg className="logout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <Link to="/login" className="login-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+                </svg>
+                <span>Login</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -141,9 +171,9 @@ function Navbar({ onSearch }) {
           </div>
           <div className="mobile-nav-menu">
             <Link to="/home" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-            <Link to="/about" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>About us</Link>
-            <Link to="/home" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Product</Link>
-            <Link to="/blog" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
+            <Link to="/products" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Products</Link>
+            <Link to="/about" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>About</Link>
+            <Link to="/contact" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
           </div>
         </div>
       </div>

@@ -62,15 +62,23 @@ function ProductCard({ product }) {
           <p className="product-description">
             {product.description || "Premium quality product with best price"}
           </p>
-          <div className="product-rating">
-            <span className="stars">★★★★★</span>
-            <span className="rating-text">(4.5)</span>
-          </div>
+          {product.rating && (
+            <div className="product-rating">
+              <span className="stars">{'★'.repeat(Math.floor(product.rating))}{'☆'.repeat(5 - Math.floor(product.rating))}</span>
+              <span className="rating-text">({product.rating.toFixed(1)})</span>
+            </div>
+          )}
           <div className="product-footer">
             <div className="price-section">
-              <span className="product-price">₹{product.price}</span>
-              <span className="product-original-price">₹{Math.round(product.price * 1.3)}</span>
-              <span className="product-discount">30% off</span>
+              <span className="product-price">₹{product.price?.toLocaleString()}</span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <>
+                  <span className="product-original-price">₹{product.originalPrice.toLocaleString()}</span>
+                  <span className="product-discount">
+                    {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% off
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
