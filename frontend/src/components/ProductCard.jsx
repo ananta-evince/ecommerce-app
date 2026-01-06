@@ -1,19 +1,98 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
+import { useToast } from "../components/ToastContainer";
 import { Link } from "react-router-dom";
 import "./ProductCard.css";
 
 function ProductCard({ product }) {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { showToast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
   const isWishlisted = isInWishlist(product.id);
+
+  const getDefaultVariants = (product) => {
+    if (!product?.variants || Object.keys(product.variants).length === 0) {
+      return null;
+    }
+
+    // Parse variants if it's a string
+    let variants = product.variants;
+    if (typeof variants === 'string') {
+      try {
+        variants = JSON.parse(variants);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    const defaultVariants = {};
+    Object.entries(variants).forEach(([key, options]) => {
+      const parseOptions = (opts) => {
+        if (Array.isArray(opts)) {
+          return opts.filter(opt => opt != null && opt !== '' && String(opt).trim() !== '');
+        }
+        if (typeof opts === 'string') {
+          try {
+            const parsed = JSON.parse(opts);
+            if (Array.isArray(parsed)) {
+              return parsed.filter(opt => opt != null && opt !== '' && String(opt).trim() !== '');
+            }
+          } catch (e) {
+            // Not JSON, continue with string parsing
+          }
+          const trimmed = opts.trim();
+          if (!trimmed) return [];
+          if (trimmed.includes(',')) {
+            return trimmed.split(',').map(opt => opt.trim()).filter(opt => opt !== '');
+          }
+          if (trimmed.includes('|')) {
+            return trimmed.split('|').map(opt => opt.trim()).filter(opt => opt !== '');
+          }
+          return [trimmed];
+        }
+        if (opts != null && typeof opts === 'object') {
+          return Object.values(opts).filter(opt => opt != null && opt !== '');
+        }
+        return [];
+      };
+      
+      const optionsArray = parseOptions(options);
+      if (optionsArray.length > 0) {
+        defaultVariants[key] = optionsArray[0];
+      }
+    });
+
+    return Object.keys(defaultVariants).length > 0 ? defaultVariants : null;
+  };
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
     setIsAdding(true);
-    addToCart(product);
+    
+    // Auto-select default variants if product has variants
+    const selectedVariants = getDefaultVariants(product);
+    
+    addToCart({
+      ...product,
+      selectedVariants: selectedVariants,
+      quantity: 1
+    }, (error) => {
+      showToast(error, "error");
+      setIsAdding(false);
+    });
+    
+    // Show success message with variants if applicable
+    if (selectedVariants && Object.keys(selectedVariants).length > 0) {
+      const variantsText = Object.entries(selectedVariants)
+        .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`)
+        .join(", ");
+      showToast(`Added to cart (${variantsText})`, "success");
+    } else {
+      showToast("Added to cart", "success");
+    }
+    
     setTimeout(() => setIsAdding(false), 500);
   };
 
@@ -23,11 +102,18 @@ function ProductCard({ product }) {
     try {
       if (isWishlisted) {
         await removeFromWishlist(product.id);
+        showToast("Removed from wishlist", "success");
       } else {
-        await addToWishlist(product);
+        const result = await addToWishlist(product, (error) => {
+          showToast(error, "error");
+        });
+        if (result?.success) {
+          showToast("Added to wishlist", "success");
+        }
       }
     } catch (error) {
       console.error("Error toggling wishlist:", error);
+      showToast("Failed to update wishlist", "error");
     }
   };
 
@@ -36,16 +122,24 @@ function ProductCard({ product }) {
       <Link to={`/product/${product.id}`} className="product-link">
         <div className="product-image">
           {product.image ? (
-            <img src={product.image} alt={product.name} />
-          ) : (
-            <div className="product-placeholder">
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <path d="M16 10a4 4 0 0 1-8 0"></path>
-              </svg>
-            </div>
-          )}
+            <img 
+              src={product.image} 
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div className="product-placeholder" style={{ display: product.image ? 'none' : 'flex' }}>
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+          </div>
           <div className="product-badge">New</div>
           <button
             className={`wishlist-btn ${isWishlisted ? "active" : ""}`}

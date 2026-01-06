@@ -1,6 +1,7 @@
 const express = require("express");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const Coupon = require("../models/Coupon");
 const { authenticateToken } = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -14,8 +15,39 @@ router.post("/", authenticateToken, async (req, res) => {
     let tax = subtotal * 0.18;
     let shipping = subtotal > 1000 ? 0 : 50;
 
-    if (couponCode === "WELCOME10") {
-      discount = subtotal * 0.1;
+    if (couponCode) {
+      const coupon = await Coupon.findOne({
+        where: {
+          code: couponCode.toUpperCase().trim(),
+          isActive: true,
+        },
+      });
+
+      if (coupon) {
+        const now = new Date();
+        const isValid = 
+          new Date(coupon.validFrom) <= now &&
+          new Date(coupon.validUntil) >= now &&
+          (!coupon.usageLimit || coupon.usedCount < coupon.usageLimit) &&
+          subtotal >= coupon.minPurchaseAmount;
+
+        if (isValid) {
+          if (coupon.discountType === "percentage") {
+            discount = subtotal * (coupon.discountValue / 100);
+            if (coupon.maxDiscountAmount && discount > coupon.maxDiscountAmount) {
+              discount = coupon.maxDiscountAmount;
+            }
+          } else {
+            discount = coupon.discountValue;
+            if (discount > subtotal) {
+              discount = subtotal;
+            }
+          }
+          discount = Math.round(discount * 100) / 100;
+
+          await coupon.update({ usedCount: coupon.usedCount + 1 });
+        }
+      }
     }
 
     const totalAmount = subtotal + tax + shipping - discount;

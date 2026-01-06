@@ -36,7 +36,8 @@
 }
 
 .clear-cart-btn:hover {
-  background: #cc0000;
+  background: black;
+  color: white;
   transform: translateY(-2px);
 }
 
@@ -90,9 +91,16 @@
   margin: 0 0 8px 0;
 }
 
+.item-variants {
+  font-size: 13px;
+  color: #64748b;
+  margin: 4px 0 8px 0;
+  font-weight: 400;
+}
+
 .item-price {
   font-size: 16px;
-  color: #667eea;
+  color: #22c55e;
   font-weight: 600;
   margin: 0;
 }
@@ -119,8 +127,9 @@
 }
 
 .quantity-btn:hover {
-  border-color: #667eea;
-  background: #f8f9ff;
+  border-color: #22c55e;
+  background: white;
+  color: black;
 }
 
 .quantity {
@@ -153,7 +162,8 @@
 }
 
 .remove-btn:hover {
-  background: #fcc;
+  background: black;
+  color: white;
   transform: scale(1.1);
 }
 
@@ -182,7 +192,7 @@
 
 .discount-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #22c55e;
 }
 
 .discount-input:disabled {
@@ -192,7 +202,7 @@
 
 .apply-discount-btn {
   padding: 12px 24px;
-  background: #667eea;
+  background: #22c55e;
   color: white;
   border: none;
   border-radius: 8px;
@@ -203,7 +213,8 @@
 }
 
 .apply-discount-btn:hover:not(:disabled) {
-  background: #764ba2;
+  background: black;
+  color: white;
 }
 
 .apply-discount-btn:disabled {
@@ -237,7 +248,7 @@
 .checkout-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #22c55e;
   color: white;
   border: none;
   border-radius: 10px;
@@ -249,9 +260,10 @@
 }
 
 .checkout-btn:hover {
-  opacity: 0.9;
+  background: black;
+  color: white;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .empty-cart {
@@ -309,8 +321,10 @@
 }
 
 .shop-button:hover {
+  background: #22c55e;
+  color: white;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
 }
 
 .shop-button:active {

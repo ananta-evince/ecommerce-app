@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import AccountSidebar from "../components/AccountSidebar";
+import API from "../api/api";
 import "./Account.css";
 
 function Account() {
@@ -11,25 +14,12 @@ function Account() {
     <div className="account-page">
       <Navbar />
       <div className="account-container">
-        <div className="account-sidebar">
-          <div className="account-profile">
-            <div className="profile-avatar">
-              {user?.name?.charAt(0).toUpperCase() || "U"}
-            </div>
-            <h3>{user?.name || "User"}</h3>
-            <p>{user?.email || ""}</p>
-          </div>
-          <nav className="account-nav">
-            <Link to="/account" className="nav-item active">Dashboard</Link>
-            <Link to="/account/profile" className="nav-item">Profile</Link>
-            <Link to="/account/orders" className="nav-item">Orders</Link>
-            <Link to="/account/addresses" className="nav-item">Addresses</Link>
-            <Link to="/wishlist" className="nav-item">Wishlist</Link>
-          </nav>
-        </div>
+        <AccountSidebar />
 
         <div className="account-content">
           <h1>Account Dashboard</h1>
+          
+          <TestimonialFormSection />
           
           <div className="dashboard-grid">
             <div className="dashboard-card">
@@ -81,6 +71,128 @@ function Account() {
         </div>
       </div>
       <Footer />
+    </div>
+  );
+}
+
+function TestimonialFormSection() {
+  const { user } = useAuth();
+  const [rating, setRating] = useState(5);
+  const [text, setText] = useState("");
+  const [author, setAuthor] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setAuthor(user.name || user.email || "");
+    }
+  }, [user]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!text.trim()) {
+      setError("Please enter your testimonial");
+      return;
+    }
+
+    if (!author.trim()) {
+      setError("Please enter your name");
+      return;
+    }
+
+    if (text.length < 10) {
+      setError("Testimonial must be at least 10 characters");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await API.post("/testimonials", {
+        rating,
+        text: text.trim(),
+        author: author.trim(),
+        role: "Verified Customer"
+      });
+      setSubmitted(true);
+      setText("");
+      setRating(5);
+      setTimeout(() => {
+        setSubmitted(false);
+      }, 3000);
+    } catch (error) {
+      console.error("Error submitting testimonial:", error);
+      setError(error.response?.data?.error || "Failed to submit testimonial. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="testimonial-form-card">
+      <h2>Share Your Experience</h2>
+      <p className="testimonial-form-description">Help us improve by sharing your feedback about your shopping experience.</p>
+      
+      <form onSubmit={handleSubmit} className="testimonial-form">
+        <div className="form-group">
+          <label htmlFor="author">Your Name *</label>
+          <input
+            type="text"
+            id="author"
+            value={author}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+              setAuthor(value);
+            }}
+            placeholder="Enter your name"
+            required
+            disabled={submitting}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Your Rating *</label>
+          <div className="rating-input">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                className={`rating-star ${rating >= star ? "active" : ""}`}
+                onClick={() => setRating(star)}
+                disabled={submitting}
+              >
+                ★
+              </button>
+            ))}
+            <span className="rating-value">{rating} out of 5</span>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="text">Your Testimonial *</label>
+          <textarea
+            id="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Tell us about your experience..."
+            rows="4"
+            required
+            disabled={submitting}
+            minLength={10}
+          />
+          <span className="char-count">{text.length} characters (minimum 10)</span>
+        </div>
+
+        {error && <div className="error-message">{error}</div>}
+        {submitted && <div className="success-message">Thank you! Your testimonial has been submitted.</div>}
+
+        <button type="submit" className="submit-button" disabled={submitting}>
+          {submitting ? "Submitting..." : "Submit Testimonial"}
+        </button>
+      </form>
     </div>
   );
 }

@@ -1,71 +1,157 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import API from "../api/api";
+import { useToast } from "../components/ToastContainer";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
+import { ProductGridSkeleton } from "../components/Skeleton";
 import "./Products.css";
 
 function Products() {
-  const { category } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(category || "all");
-  const [selectedBrand, setSelectedBrand] = useState("all");
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 100000 });
-  const [minRating, setMinRating] = useState(0);
-  const [availability, setAvailability] = useState("all");
-  const [sortBy, setSortBy] = useState("popular");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [filtersOpen, setFiltersOpen] = useState(window.innerWidth >= 1024);
+  
+  // Auto-open filters on desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setFiltersOpen(true);
+      } else if (window.innerWidth < 1024 && filtersOpen) {
+        setFiltersOpen(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [filtersOpen]);
+
+  const category = searchParams.get("category") || "all";
+  const brand = searchParams.get("brand") || "all";
+  const minPrice = searchParams.get("minPrice") || "0";
+  const maxPrice = searchParams.get("maxPrice") || "100000";
+  const rating = searchParams.get("rating") || "0";
+  const availability = searchParams.get("availability") || "all";
+  const sortBy = searchParams.get("sort") || "popular";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+
+  // Local state for filter form (before applying)
+  const [localFilters, setLocalFilters] = useState({
+    category: category,
+    brand: brand,
+    minPrice: minPrice,
+    maxPrice: maxPrice,
+    rating: rating,
+    availability: availability
+  });
+
   const productsPerPage = 12;
 
   useEffect(() => {
     fetchProducts();
-    if (category) {
-      setSelectedCategory(category);
-    }
-  }, [category]);
+  }, [category, brand, minPrice, maxPrice, rating]);
 
   useEffect(() => {
-    filterAndSortProducts();
-  }, [products, selectedCategory, selectedBrand, priceRange, minRating, availability, sortBy]);
+    if (products.length > 0) {
+      filterAndSortProducts();
+    } else if (!loading) {
+      setFilteredProducts([]);
+    }
+  }, [products, availability, sortBy, loading]);
+
+  // Update local filters when URL params change
+  useEffect(() => {
+    setLocalFilters({
+      category: category,
+      brand: brand,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      rating: rating,
+      availability: availability
+    });
+  }, [category, brand, minPrice, maxPrice, rating, availability]);
+
+  // Prevent body scroll when filters are open on mobile only
+  useEffect(() => {
+    if (filtersOpen && window.innerWidth < 1024) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [filtersOpen]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const res = await API.get("/products");
-      setProducts(res.data);
+      
+      const params = new URLSearchParams();
+      if (category !== "all") params.append("category", category);
+      if (brand !== "all") params.append("brand", brand);
+      if (minPrice !== "0") params.append("minPrice", minPrice);
+      if (maxPrice !== "100000") params.append("maxPrice", maxPrice);
+      if (rating !== "0") params.append("minRating", rating);
+      
+      const queryString = params.toString();
+      const url = queryString ? `/products?${queryString}` : "/products";
+      
+      const res = await API.get(url);
+      setProducts(res.data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
+      setProducts([]);
+      showToast("Failed to load products. Please try again.", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  const updateURL = (updates) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === "all" || value === "0" || value === "" || value === null) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    });
+    newParams.delete("page");
+    setSearchParams(newParams);
+  };
+
   const filterAndSortProducts = () => {
     let filtered = [...products];
 
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((product) => product.category === selectedCategory);
+    if (category !== "all") {
+      filtered = filtered.filter((product) => product.category === category);
     }
 
-    if (selectedBrand !== "all") {
-      filtered = filtered.filter((product) => product.brand === selectedBrand);
+    if (brand !== "all") {
+      filtered = filtered.filter((product) => product.brand === brand);
     }
 
+    const min = parseInt(minPrice, 10);
+    const max = parseInt(maxPrice, 10);
     filtered = filtered.filter(
-      (product) => product.price >= priceRange.min && product.price <= priceRange.max
+      (product) => product.price >= min && product.price <= max
     );
 
+    const minRating = parseInt(rating, 10);
     if (minRating > 0) {
       filtered = filtered.filter((product) => (product.rating || 0) >= minRating);
     }
 
     if (availability === "in-stock") {
-      filtered = filtered.filter((product) => product.stock > 0);
+      filtered = filtered.filter((product) => (product.stock || 0) > 0);
     } else if (availability === "out-of-stock") {
-      filtered = filtered.filter((product) => product.stock === 0);
+      filtered = filtered.filter((product) => (product.stock || 0) === 0);
     }
 
     switch (sortBy) {
@@ -82,177 +168,462 @@ function Products() {
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       default:
+        filtered.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
         break;
     }
 
     setFilteredProducts(filtered);
-    setCurrentPage(1);
   };
 
   const categories = ["all", ...new Set(products.map((p) => p.category).filter(Boolean))];
   const brands = ["all", ...new Set(products.map((p) => p.brand).filter(Boolean))];
 
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-  const startIndex = (currentPage - 1) * productsPerPage;
+  const startIndex = (page - 1) * productsPerPage;
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + productsPerPage);
 
-  const categoryName = selectedCategory === "all" ? "All Products" : selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1);
+  const categoryName = category === "all" ? "All Products" : category.charAt(0).toUpperCase() + category.slice(1);
+
+  const handlePageChange = (newPage) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (newPage === 1) {
+      newParams.delete("page");
+    } else {
+      newParams.set("page", newPage.toString());
+    }
+    setSearchParams(newParams);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const clearFilters = () => {
+    setSearchParams({});
+    setFiltersOpen(false);
+    setLocalFilters({
+      category: "all",
+      brand: "all",
+      minPrice: "0",
+      maxPrice: "100000",
+      rating: "0",
+      availability: "all"
+    });
+  };
+
+  const applyFilters = () => {
+    updateURL(localFilters);
+    setFiltersOpen(false);
+  };
+
+  const handleLocalFilterChange = (updates) => {
+    const newFilters = { ...localFilters, ...updates };
+    setLocalFilters(newFilters);
+    
+    // Auto-apply on desktop
+    if (window.innerWidth >= 1024) {
+      updateURL(newFilters);
+    }
+  };
+
+  const hasActiveFilters = category !== "all" || brand !== "all" || minPrice !== "0" || maxPrice !== "100000" || rating !== "0" || availability !== "all";
 
   return (
     <div className="products-page">
       <Navbar />
+      
       <div className="products-container">
-        <div className="breadcrumb">
-          <Link to="/">Home</Link>
-          <span>/</span>
-          <span>{categoryName}</span>
-        </div>
-
-        <div className="products-header">
-          <h1>{categoryName}</h1>
-          <p>Discover our amazing collection of fashion products</p>
-        </div>
+        <PageHeader categoryName={categoryName} />
+        
+        <FilterSortBar 
+          resultsCount={filteredProducts.length}
+          startIndex={startIndex + 1}
+          endIndex={Math.min(startIndex + productsPerPage, filteredProducts.length)}
+          sortBy={sortBy}
+          onSortChange={(value) => updateURL({ sort: value })}
+          onFiltersToggle={() => setFiltersOpen(!filtersOpen)}
+          filtersOpen={filtersOpen}
+        />
 
         <div className="products-layout">
-          <aside className="filters-sidebar">
-            <h3>Filters</h3>
-            
-            <div className="filter-group">
-              <label>Category</label>
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label>Brand</label>
-              <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)}>
-                {brands.map((brand) => (
-                  <option key={brand} value={brand}>
-                    {brand.charAt(0).toUpperCase() + brand.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label>Price Range</label>
-              <div className="price-inputs">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={priceRange.min}
-                  onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
-                />
-                <span>-</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={priceRange.max}
-                  onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
-                />
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <label>Rating</label>
-              <select value={minRating} onChange={(e) => setMinRating(Number(e.target.value))}>
-                <option value={0}>All Ratings</option>
-                <option value={4}>4+ Stars</option>
-                <option value={3}>3+ Stars</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label>Availability</label>
-              <select value={availability} onChange={(e) => setAvailability(e.target.value)}>
-                <option value="all">All</option>
-                <option value="in-stock">In Stock</option>
-                <option value="out-of-stock">Out of Stock</option>
-              </select>
-            </div>
-
-            <button className="clear-filters" onClick={() => {
-              setSelectedCategory("all");
-              setSelectedBrand("all");
-              setPriceRange({ min: 0, max: 100000 });
-              setMinRating(0);
-              setAvailability("all");
-            }}>
-              Clear All Filters
-            </button>
-          </aside>
+          <FiltersSidebar
+            categories={categories}
+            brands={brands}
+            category={localFilters.category}
+            brand={localFilters.brand}
+            minPrice={localFilters.minPrice}
+            maxPrice={localFilters.maxPrice}
+            rating={localFilters.rating}
+            availability={localFilters.availability}
+            onFilterChange={handleLocalFilterChange}
+            onApplyFilters={applyFilters}
+            onClearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+            isOpen={filtersOpen}
+            onClose={() => setFiltersOpen(false)}
+            localFilters={localFilters}
+            updateURL={updateURL}
+          />
 
           <main className="products-main">
-            <div className="products-toolbar">
-              <p className="results-count">
-                Showing {startIndex + 1}-{Math.min(startIndex + productsPerPage, filteredProducts.length)} of {filteredProducts.length} products
-              </p>
-              <select className="sort-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <option value="popular">Popular</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="newest">Newest</option>
-                <option value="rating">Highest Rated</option>
-              </select>
-            </div>
-
             {loading ? (
-              <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <p>Loading products...</p>
-              </div>
+              <ProductGridSkeleton count={12} />
             ) : paginatedProducts.length === 0 ? (
-              <div className="empty-state">
-                <h2>No products found</h2>
-                <p>Try adjusting your filters</p>
-              </div>
+              <NoResultsState onClearFilters={clearFilters} hasActiveFilters={hasActiveFilters} />
             ) : (
               <>
-                <div className="products-grid">
-                  {paginatedProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-
+                <ProductsGrid products={paginatedProducts} />
                 {totalPages > 1 && (
-                  <div className="pagination">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </button>
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i + 1}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={currentPage === i + 1 ? "active" : ""}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </button>
-                  </div>
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
                 )}
               </>
             )}
           </main>
         </div>
       </div>
+
       <Footer />
     </div>
   );
 }
 
-export default Products;
+function PageHeader({ categoryName }) {
+  return (
+    <div className="page-header">
+      <div className="breadcrumbs">
+        <Link to="/home" className="breadcrumb-link">Home</Link>
+        <span className="breadcrumb-separator">/</span>
+        <span className="breadcrumb-current">Products</span>
+        {categoryName !== "All Products" && (
+          <>
+            <span className="breadcrumb-separator">/</span>
+            <span className="breadcrumb-current">{categoryName}</span>
+          </>
+        )}
+      </div>
+      <div className="page-title-section">
+        <h1 className="page-title">{categoryName}</h1>
+        <p className="page-subtitle">Discover our amazing collection of fashion products</p>
+      </div>
+    </div>
+  );
+}
 
+function FilterSortBar({ resultsCount, startIndex, endIndex, sortBy, onSortChange, onFiltersToggle, filtersOpen }) {
+  return (
+    <div className="filter-sort-bar">
+      <div className="filter-sort-left">
+        <button 
+          className="filters-toggle-btn"
+          onClick={onFiltersToggle}
+          aria-label="Toggle filters"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+          <span>Filters</span>
+        </button>
+        <p className="results-count">
+          Showing {startIndex}-{endIndex} of {resultsCount} products
+        </p>
+      </div>
+      <div className="filter-sort-right">
+        <label htmlFor="sort-select" className="sort-label">Sort by:</label>
+        <select
+          id="sort-select"
+          className="sort-select"
+          value={sortBy}
+          onChange={(e) => onSortChange(e.target.value)}
+        >
+          <option value="popular">Popular</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+          <option value="newest">Newest</option>
+          <option value="rating">Highest Rated</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function FiltersSidebar({
+  categories,
+  brands,
+  category,
+  brand,
+  minPrice,
+  maxPrice,
+  rating,
+  availability,
+  onFilterChange,
+  onApplyFilters,
+  onClearFilters,
+  hasActiveFilters,
+  isOpen,
+  onClose,
+  localFilters,
+  updateURL
+}) {
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  const shouldShowOverlay = isOpen && !isDesktop;
+  const shouldShowSidebar = isOpen || isDesktop;
+  
+  return (
+    <>
+      {shouldShowOverlay && <div className="filters-overlay active" onClick={onClose}></div>}
+      <aside className={`filters-sidebar ${shouldShowSidebar ? 'open' : ''}`}>
+        <div className="filters-header">
+          <div className="filters-header-content">
+            <h3>Filters</h3>
+            {hasActiveFilters && (
+              <button className="filters-clear-header-btn" onClick={onClearFilters} aria-label="Clear all filters">
+                Clear
+              </button>
+            )}
+          </div>
+          {!isDesktop && (
+            <button className="filters-close-btn" onClick={onClose} aria-label="Close filters">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12"></path>
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className="filters-content">
+          <div className="filter-group">
+            <label>Category</label>
+            <select
+              value={category}
+              onChange={(e) => onFilterChange({ category: e.target.value })}
+            >
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat === "all" ? "All Categories" : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Brand</label>
+            <select
+              value={brand}
+              onChange={(e) => onFilterChange({ brand: e.target.value })}
+            >
+              {brands.map((b) => (
+                <option key={b} value={b}>
+                  {b === "all" ? "All Brands" : b.charAt(0).toUpperCase() + b.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Price Range (₹)</label>
+            <div className="price-inputs">
+              <input
+                type="number"
+                placeholder="Min"
+                value={minPrice}
+                onChange={(e) => {
+                  const value = e.target.value || "0";
+                  onFilterChange({ minPrice: value });
+                }}
+                onBlur={(e) => {
+                  if (isDesktop) {
+                    const value = e.target.value || "0";
+                    updateURL({ ...localFilters, minPrice: value });
+                  }
+                }}
+                min="0"
+              />
+              <span>-</span>
+              <input
+                type="number"
+                placeholder="Max"
+                value={maxPrice}
+                onChange={(e) => {
+                  const value = e.target.value || "100000";
+                  onFilterChange({ maxPrice: value });
+                }}
+                onBlur={(e) => {
+                  if (isDesktop) {
+                    const value = e.target.value || "100000";
+                    updateURL({ ...localFilters, maxPrice: value });
+                  }
+                }}
+                min="0"
+              />
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <label>Minimum Rating</label>
+            <select
+              value={rating}
+              onChange={(e) => onFilterChange({ rating: e.target.value })}
+            >
+              <option value="0">All Ratings</option>
+              <option value="4">4+ Stars</option>
+              <option value="3">3+ Stars</option>
+              <option value="2">2+ Stars</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Availability</label>
+            <select
+              value={availability}
+              onChange={(e) => onFilterChange({ availability: e.target.value })}
+            >
+              <option value="all">All Products</option>
+              <option value="in-stock">In Stock</option>
+              <option value="out-of-stock">Out of Stock</option>
+            </select>
+          </div>
+
+          <div className="filter-actions">
+            {!isDesktop && (
+              <button className="apply-filters-btn" onClick={onApplyFilters}>
+                Apply Filters
+              </button>
+            )}
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function ProductsGrid({ products }) {
+  return (
+    <div className="products-grid">
+      {products.map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
+  );
+}
+
+function Pagination({ currentPage, totalPages, onPageChange }) {
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push("ellipsis");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push("ellipsis");
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push("ellipsis");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push("ellipsis");
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
+  return (
+    <div className="pagination">
+      <button
+        className="pagination-btn"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        aria-label="Previous page"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M15 18l-6-6 6-6"></path>
+        </svg>
+        Previous
+      </button>
+
+      <div className="pagination-numbers">
+        {getPageNumbers().map((page, index) => {
+          if (page === "ellipsis") {
+            return <span key={`ellipsis-${index}`} className="pagination-ellipsis">...</span>;
+          }
+          return (
+            <button
+              key={page}
+              className={`pagination-number ${currentPage === page ? "active" : ""}`}
+              onClick={() => onPageChange(page)}
+              aria-label={`Go to page ${page}`}
+            >
+              {page}
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        className="pagination-btn"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        aria-label="Next page"
+      >
+        Next
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 18l6-6-6-6"></path>
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function NoResultsState({ onClearFilters, hasActiveFilters }) {
+  return (
+    <div className="no-results-state">
+      <div className="no-results-icon">
+        <svg width="120" height="120" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="100" cy="100" r="60" stroke="#8b5cf6" strokeWidth="10" fill="none" opacity="0.5" />
+          <path
+            d="M150 150 L180 180"
+            stroke="#8b5cf6"
+            strokeWidth="12"
+            strokeLinecap="round"
+            opacity="0.6"
+          />
+        </svg>
+      </div>
+      <h2>No products found</h2>
+      <p>We couldn't find any products matching your criteria.</p>
+      {hasActiveFilters && (
+        <button className="clear-filters-action-btn" onClick={onClearFilters}>
+          Clear All Filters
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default Products;

@@ -29,11 +29,28 @@ const User = sequelize.define("User", {
     defaultValue: "customer",
     allowNull: false,
   },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  profilePhoto: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 });
 
 User.beforeCreate(async (user) => {
-  const hashedPassword = await bcrypt.hash(user.password, 10);
-  user.password = hashedPassword;
+  if (user.password) {
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+    user.password = hashedPassword;
+  }
+});
+
+User.beforeUpdate(async (user) => {
+  if (user.changed("password")) {
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+    user.password = hashedPassword;
+  }
 });
 
 User.prototype.comparePassword = async function (password) {

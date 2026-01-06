@@ -3,13 +3,21 @@ import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/ToastContainer";
 import Navbar from "../components/Navbar";
 import "./Checkout.css";
 
 function Checkout() {
-  const { cart, getCartTotal, clearCart } = useCart();
+  const { 
+    cart, 
+    getCartTotal, 
+    clearCart,
+    appliedDiscountCode: cartDiscountCode,
+    appliedDiscount: cartDiscountAmount
+  } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -29,10 +37,21 @@ function Checkout() {
     country: "India",
     isDefault: false,
   });
+  const [addressErrors, setAddressErrors] = useState({});
 
   useEffect(() => {
     fetchAddresses();
   }, []);
+
+  useEffect(() => {
+    if (cartDiscountCode && cartDiscountAmount) {
+      setAppliedCoupon({
+        code: cartDiscountCode,
+        discount: cartDiscountAmount,
+      });
+      setCouponCode(cartDiscountCode);
+    }
+  }, [cartDiscountCode, cartDiscountAmount]);
 
   const fetchAddresses = async () => {
     try {
@@ -45,10 +64,66 @@ function Checkout() {
     }
   };
 
+  const validateAddressForm = () => {
+    const newErrors = {};
+
+    if (!newAddress.name.trim()) {
+      newErrors.name = "Name is required";
+    } else if (newAddress.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters";
+    } else if (!/^[a-zA-Z\s]+$/.test(newAddress.name.trim())) {
+      newErrors.name = "Name can only contain letters and spaces";
+    }
+
+    if (!newAddress.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^[0-9]{10}$/.test(newAddress.phone.replace(/\D/g, ""))) {
+      newErrors.phone = "Please enter a valid 10-digit phone number";
+    }
+
+    if (!newAddress.addressLine1.trim()) {
+      newErrors.addressLine1 = "Address is required";
+    } else if (newAddress.addressLine1.trim().length < 10) {
+      newErrors.addressLine1 = "Address must be at least 10 characters";
+    }
+
+    if (!newAddress.city.trim()) {
+      newErrors.city = "City is required";
+    } else if (!/^[a-zA-Z\s]+$/.test(newAddress.city.trim())) {
+      newErrors.city = "City can only contain letters and spaces";
+    }
+
+    if (!newAddress.state.trim()) {
+      newErrors.state = "State is required";
+    } else if (!/^[a-zA-Z\s]+$/.test(newAddress.state.trim())) {
+      newErrors.state = "State can only contain letters and spaces";
+    }
+
+    if (!newAddress.pincode.trim()) {
+      newErrors.pincode = "Pincode is required";
+    } else if (!/^[0-9]{6}$/.test(newAddress.pincode.replace(/\D/g, ""))) {
+      newErrors.pincode = "Please enter a valid 6-digit pincode";
+    }
+
+    setAddressErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleAddressSubmit = async (e) => {
     e.preventDefault();
+    setAddressErrors({});
+
+    if (!validateAddressForm()) {
+      return;
+    }
+
     try {
-      const res = await API.post("/addresses", newAddress);
+      const addressData = {
+        ...newAddress,
+        phone: newAddress.phone.replace(/\D/g, ""),
+        pincode: newAddress.pincode.replace(/\D/g, ""),
+      };
+      const res = await API.post("/addresses", addressData);
       setAddresses([...addresses, res.data]);
       setSelectedAddress(res.data.id);
       setShowAddressForm(false);
@@ -63,24 +138,52 @@ function Checkout() {
         country: "India",
         isDefault: false,
       });
+      setAddressErrors({});
+      showToast("Address added successfully", "success");
     } catch (error) {
       console.error("Error creating address:", error);
-      alert("Error creating address");
+      const errorMessage = error.response?.data?.error || "Failed to create address. Please try again.";
+      setAddressErrors({ submit: errorMessage });
+      showToast(errorMessage, "error");
     }
   };
 
-  const applyCoupon = () => {
-    if (couponCode.toUpperCase() === "WELCOME10") {
-      setAppliedCoupon({ code: "WELCOME10", discount: 0.1 });
-      alert("Coupon applied! 10% discount");
-    } else {
-      alert("Invalid coupon code");
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      showToast("Please enter a coupon code", "warning", 3000);
+      return;
+    }
+
+    try {
+      const subtotal = getCartTotal();
+      const res = await API.post("/coupons/validate", {
+        code: couponCode.trim(),
+        subtotal,
+      });
+
+      if (res.data.valid) {
+        setAppliedCoupon({
+          code: res.data.coupon.code,
+          discount: res.data.discount,
+          discountType: res.data.coupon.discountType,
+          discountValue: res.data.coupon.discountValue,
+        });
+        showToast(
+          `Coupon "${res.data.coupon.code}" applied! You saved ₹${res.data.discount.toFixed(2)}`,
+          "success",
+          4000
+        );
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || "Invalid coupon code";
+      showToast(errorMessage, "error", 4000);
+      setAppliedCoupon(null);
     }
   };
 
   const calculateTotals = () => {
     const subtotal = getCartTotal();
-    const discount = appliedCoupon ? subtotal * appliedCoupon.discount : 0;
+    const discount = appliedCoupon ? appliedCoupon.discount : 0;
     const tax = (subtotal - discount) * 0.18;
     const shipping = subtotal > 1000 ? 0 : 50;
     const total = subtotal - discount + tax + shipping;
@@ -89,11 +192,11 @@ function Checkout() {
 
   const handlePlaceOrder = async () => {
     if (!selectedAddress) {
-      alert("Please select or add a delivery address");
+      showToast("Please select or add a delivery address", "warning", 3000);
       return;
     }
     if (cart.length === 0) {
-      alert("Your cart is empty");
+      showToast("Your cart is empty", "warning", 3000);
       return;
     }
 
@@ -111,16 +214,11 @@ function Checkout() {
 
       const res = await API.post("/orders", orderData);
 
-      if (paymentMethod === "cod") {
-        clearCart();
-        navigate(`/order-confirmation/${res.data.id}`);
-      } else {
-        // Handle Razorpay payment
-        alert("Payment integration coming soon!");
-      }
+      clearCart();
+      navigate(`/order-confirmation/${res.data.id}`);
     } catch (error) {
       console.error("Error placing order:", error);
-      alert("Error placing order. Please try again.");
+      showToast("Error placing order. Please try again.", "error", 4000);
     } finally {
       setLoading(false);
     }
@@ -179,56 +277,108 @@ function Checkout() {
                 </button>
               ) : (
                 <form className="address-form" onSubmit={handleAddressSubmit}>
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    value={newAddress.name}
-                    onChange={(e) => setNewAddress({ ...newAddress, name: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Phone Number"
-                    value={newAddress.phone}
-                    onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Address Line 1"
-                    value={newAddress.addressLine1}
-                    onChange={(e) => setNewAddress({ ...newAddress, addressLine1: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Address Line 2 (Optional)"
-                    value={newAddress.addressLine2}
-                    onChange={(e) => setNewAddress({ ...newAddress, addressLine2: e.target.value })}
-                  />
-                  <div className="form-row">
+                  {addressErrors.submit && <div className="error-message">{addressErrors.submit}</div>}
+                  <div className="form-group">
                     <input
                       type="text"
-                      placeholder="City"
-                      value={newAddress.city}
-                      onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                      placeholder="Full Name"
+                      value={newAddress.name}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                        setNewAddress({ ...newAddress, name: value });
+                        if (addressErrors.name) setAddressErrors({ ...addressErrors, name: "" });
+                      }}
+                      className={addressErrors.name ? "error" : ""}
                       required
                     />
+                    {addressErrors.name && <span className="error-message">{addressErrors.name}</span>}
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="tel"
+                      placeholder="Phone Number (10 digits)"
+                      value={newAddress.phone}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setNewAddress({ ...newAddress, phone: value });
+                        if (addressErrors.phone) setAddressErrors({ ...addressErrors, phone: "" });
+                      }}
+                      className={addressErrors.phone ? "error" : ""}
+                      maxLength="10"
+                      required
+                    />
+                    {addressErrors.phone && <span className="error-message">{addressErrors.phone}</span>}
+                  </div>
+                  <div className="form-group">
                     <input
                       type="text"
-                      placeholder="State"
-                      value={newAddress.state}
-                      onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
+                      placeholder="Address Line 1"
+                      value={newAddress.addressLine1}
+                      onChange={(e) => {
+                        setNewAddress({ ...newAddress, addressLine1: e.target.value });
+                        if (addressErrors.addressLine1) setAddressErrors({ ...addressErrors, addressLine1: "" });
+                      }}
+                      className={addressErrors.addressLine1 ? "error" : ""}
                       required
+                    />
+                    {addressErrors.addressLine1 && <span className="error-message">{addressErrors.addressLine1}</span>}
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      placeholder="Address Line 2 (Optional)"
+                      value={newAddress.addressLine2}
+                      onChange={(e) => setNewAddress({ ...newAddress, addressLine2: e.target.value })}
                     />
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Pincode"
-                    value={newAddress.pincode}
-                    onChange={(e) => setNewAddress({ ...newAddress, pincode: e.target.value })}
-                    required
-                  />
+                  <div className="form-row">
+                    <div className="form-group">
+                      <input
+                        type="text"
+                        placeholder="City"
+                        value={newAddress.city}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                          setNewAddress({ ...newAddress, city: value });
+                          if (addressErrors.city) setAddressErrors({ ...addressErrors, city: "" });
+                        }}
+                        className={addressErrors.city ? "error" : ""}
+                        required
+                      />
+                      {addressErrors.city && <span className="error-message">{addressErrors.city}</span>}
+                    </div>
+                    <div className="form-group">
+                      <input
+                        type="text"
+                        placeholder="State"
+                        value={newAddress.state}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                          setNewAddress({ ...newAddress, state: value });
+                          if (addressErrors.state) setAddressErrors({ ...addressErrors, state: "" });
+                        }}
+                        className={addressErrors.state ? "error" : ""}
+                        required
+                      />
+                      {addressErrors.state && <span className="error-message">{addressErrors.state}</span>}
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      placeholder="Pincode (6 digits)"
+                      value={newAddress.pincode}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        setNewAddress({ ...newAddress, pincode: value });
+                        if (addressErrors.pincode) setAddressErrors({ ...addressErrors, pincode: "" });
+                      }}
+                      className={addressErrors.pincode ? "error" : ""}
+                      maxLength="6"
+                      required
+                    />
+                    {addressErrors.pincode && <span className="error-message">{addressErrors.pincode}</span>}
+                  </div>
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
@@ -239,7 +389,7 @@ function Checkout() {
                   </label>
                   <div className="form-actions">
                     <button type="submit">Save Address</button>
-                    <button type="button" onClick={() => setShowAddressForm(false)}>
+                    <button type="button" onClick={() => { setShowAddressForm(false); setAddressErrors({}); }}>
                       Cancel
                     </button>
                   </div>
@@ -263,19 +413,6 @@ function Checkout() {
                     <p>Pay when you receive</p>
                   </div>
                 </label>
-                <label className="payment-option">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="razorpay"
-                    checked={paymentMethod === "razorpay"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  />
-                  <div>
-                    <strong>Razorpay</strong>
-                    <p>Pay with card, UPI, or wallet</p>
-                  </div>
-                </label>
               </div>
             </div>
 
@@ -287,11 +424,21 @@ function Checkout() {
                   placeholder="Enter coupon code"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
+                  disabled={!!appliedCoupon}
                 />
-                <button onClick={applyCoupon}>Apply</button>
+                {appliedCoupon ? (
+                  <button onClick={() => {
+                    setAppliedCoupon(null);
+                    setCouponCode("");
+                  }}>Remove</button>
+                ) : (
+                  <button onClick={applyCoupon}>Apply</button>
+                )}
               </div>
               {appliedCoupon && (
-                <p className="coupon-applied">✓ Coupon {appliedCoupon.code} applied!</p>
+                <p className="coupon-applied">
+                  ✓ Coupon {appliedCoupon.code} applied! Discount: ₹{appliedCoupon.discount.toFixed(2)}
+                </p>
               )}
             </div>
           </div>
@@ -300,11 +447,18 @@ function Checkout() {
             <div className="order-summary">
               <h2>Order Summary</h2>
               <div className="order-items">
-                {cart.map((item) => (
-                  <div key={item.id} className="order-item">
+                {cart.map((item, index) => (
+                  <div key={`${item.id}-${index}`} className="order-item">
                     <img src={item.image || "/placeholder.png"} alt={item.name} />
                     <div>
                       <p>{item.name}</p>
+                      {item.selectedVariants && Object.keys(item.selectedVariants).length > 0 && (
+                        <p className="item-variants">
+                          {Object.entries(item.selectedVariants)
+                            .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`)
+                            .join(", ")}
+                        </p>
+                      )}
                       <p>Qty: {item.quantity} × ₹{item.price}</p>
                     </div>
                     <span>₹{item.price * item.quantity}</span>

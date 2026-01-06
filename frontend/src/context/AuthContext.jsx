@@ -28,11 +28,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem("token");
       if (token) {
-        const decoded = JSON.parse(atob(token.split(".")[1]));
-        setUser({
-          id: decoded.userId,
-          role: decoded.role || "customer",
-        });
+        const res = await API.get("/auth/me");
+        setUser(res.data.user);
       }
     } catch (error) {
       console.error("Error fetching user:", error);

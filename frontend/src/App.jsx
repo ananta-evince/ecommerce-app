@@ -5,6 +5,8 @@ import { WishlistProvider } from "./context/WishlistContext";
 import { ToastProvider } from "./components/ToastContainer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
+import ScrollToTop from "./components/ScrollToTop";
+import LoginPopupWrapper from "./components/LoginPopupWrapper";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
@@ -31,13 +33,14 @@ function App() {
         <WishlistProvider>
           <ToastProvider>
             <BrowserRouter>
+            <ScrollToTop />
+            <LoginPopupWrapper />
             <Routes>
               <Route path="/" element={<Navigate to="/home" replace />} />
               
               {/* Public Pages */}
               <Route path="/home" element={<PublicRoute><Home /></PublicRoute>} />
               <Route path="/products" element={<PublicRoute><Products /></PublicRoute>} />
-              <Route path="/category/:category" element={<PublicRoute><Products /></PublicRoute>} />
               <Route path="/product/:id" element={<PublicRoute><ProductDetails /></PublicRoute>} />
               <Route path="/search" element={<PublicRoute><Search /></PublicRoute>} />
               <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />

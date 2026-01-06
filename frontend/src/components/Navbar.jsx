@@ -1,17 +1,28 @@
-import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useContext } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { useWishlist, LoginPopupContext } from "../context/WishlistContext";
 import "./Navbar.css";
 
 function Navbar({ onSearch }) {
   const { logout, user } = useAuth();
   const { getCartCount } = useCart();
+  const { wishlist } = useWishlist();
+  const { setShowLoginPopup } = useContext(LoginPopupContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const menuRef = useRef(null);
+
+  const isActive = (path) => {
+    if (path === "/home") {
+      return location.pathname === "/home" || location.pathname === "/";
+    }
+    return location.pathname.startsWith(path);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -22,16 +33,27 @@ function Navbar({ onSearch }) {
       }
     };
 
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+
     if (mobileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
+      document.body.classList.add('no-scroll');
     } else {
       document.body.style.overflow = '';
+      document.body.classList.remove('no-scroll');
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = '';
+      document.body.classList.remove('no-scroll');
     };
   }, [mobileMenuOpen]);
 
@@ -52,22 +74,28 @@ function Navbar({ onSearch }) {
   };
 
   const cartCount = getCartCount();
+  const wishlistCount = wishlist ? wishlist.length : 0;
 
   return (
     <nav className="navbar">
-      <div className="navbar-top">
-        <div className="navbar-container">
+      <div className="navbar-container">
           <div className="navbar-left">
             <button 
               className="mobile-menu-toggle"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu-drawer"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 {mobileMenuOpen ? (
                   <path d="M18 6L6 18M6 6l12 12" />
                 ) : (
-                  <path d="M3 12h18M3 6h18M3 18h18" />
+                  <>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </>
                 )}
               </svg>
             </button>
@@ -81,19 +109,10 @@ function Navbar({ onSearch }) {
           </div>
 
           <div className="navbar-menu">
-            <Link to="/home" className="nav-menu-item active">Home</Link>
-            <Link to="/products" className="nav-menu-item">Products</Link>
-            <div className="nav-dropdown">
-              <button className="nav-menu-item">Categories</button>
-              <div className="dropdown-content">
-                <Link to="/category/men">Men</Link>
-                <Link to="/category/girls">Women</Link>
-                <Link to="/category/kids">Kids</Link>
-                <Link to="/products">All Products</Link>
-              </div>
-            </div>
-            <Link to="/about" className="nav-menu-item">About</Link>
-            <Link to="/contact" className="nav-menu-item">Contact</Link>
+            <Link to="/home" className={`nav-menu-item ${isActive("/home") ? "active" : ""}`}>Home</Link>
+            <Link to="/products" className={`nav-menu-item ${isActive("/products") ? "active" : ""}`}>Products</Link>
+            <Link to="/about" className={`nav-menu-item ${isActive("/about") ? "active" : ""}`}>About</Link>
+            <Link to="/contact" className={`nav-menu-item ${isActive("/contact") ? "active" : ""}`}>Contact</Link>
           </div>
 
           <form className={`navbar-search ${searchOpen ? 'search-open' : ''}`} onSubmit={handleSearch}>
@@ -126,7 +145,28 @@ function Navbar({ onSearch }) {
                 <path d="m21 21-4.35-4.35"></path>
               </svg>
             </button>
-            <Link to="/cart" className="cart-link">
+            {user && (
+              <Link to="/wishlist" className="wishlist-link">
+                <div className="wishlist-wrapper">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                  {wishlistCount > 0 && <span className="wishlist-badge">{wishlistCount}</span>}
+                </div>
+              </Link>
+            )}
+            <div 
+              className="cart-link" 
+              onClick={(e) => {
+                if (!user) {
+                  e.preventDefault();
+                  setShowLoginPopup(true);
+                } else {
+                  navigate("/cart");
+                }
+              }}
+              style={{ cursor: "pointer" }}
+            >
               <div className="cart-wrapper">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="9" cy="21" r="1"></circle>
@@ -135,7 +175,7 @@ function Navbar({ onSearch }) {
                 </svg>
                 {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
               </div>
-            </Link>
+            </div>
             {user ? (
               <div className="account-menu">
                 <Link to="/account" className="account-link">
@@ -162,20 +202,118 @@ function Navbar({ onSearch }) {
             )}
           </div>
         </div>
-      </div>
 
-      <div className={`mobile-menu ${mobileMenuOpen ? 'open' : ''}`} ref={menuRef}>
-        <div className="mobile-menu-content">
-          <div className="mobile-user-info">
-            <span className="user-greeting">Hello, {user?.name || "User"}</span>
+      <div 
+        className={`mobile-menu ${mobileMenuOpen ? 'open' : ''}`} 
+        ref={menuRef}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setMobileMenuOpen(false);
+          }
+        }}
+        aria-hidden={!mobileMenuOpen}
+      >
+        <div 
+          className="mobile-menu-overlay"
+          onClick={() => setMobileMenuOpen(false)}
+        ></div>
+        <nav 
+          className="mobile-menu-drawer"
+          role="navigation"
+          aria-label="Mobile navigation"
+        >
+          <div className="mobile-menu-header">
+            <button 
+              className="mobile-menu-close" 
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close menu"
+              aria-expanded={mobileMenuOpen}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
+          
           <div className="mobile-nav-menu">
-            <Link to="/home" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-            <Link to="/products" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Products</Link>
-            <Link to="/about" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>About</Link>
-            <Link to="/contact" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
+            <Link 
+              to="/home" 
+              className={`mobile-nav-item ${isActive("/home") ? "active" : ""}`} 
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+              <span>Home</span>
+            </Link>
+            
+            <Link 
+              to="/products" 
+              className={`mobile-nav-item ${isActive("/products") ? "active" : ""}`} 
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Products</span>
+            </Link>
+            
+            <Link 
+              to="/about" 
+              className={`mobile-nav-item ${isActive("/about") ? "active" : ""}`} 
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span>About</span>
+            </Link>
+            
+            <Link 
+              to="/contact" 
+              className={`mobile-nav-item ${isActive("/contact") ? "active" : ""}`} 
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>Contact</span>
+            </Link>
+            
+            {user && (
+              <>
+                <Link 
+                  to="/wishlist" 
+                  className={`mobile-nav-item ${isActive("/wishlist") ? "active" : ""}`} 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                  <span>Wishlist</span>
+                </Link>
+                <Link 
+                  to="/account" 
+                  className={`mobile-nav-item ${isActive("/account") ? "active" : ""}`} 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>Account</span>
+                </Link>
+              </>
+            )}
           </div>
-        </div>
+        </nav>
       </div>
 
     </nav>

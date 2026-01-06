@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import API from "../api/api";
 import "./Footer.css";
 
 function Footer() {
@@ -60,7 +62,6 @@ function Footer() {
           <ul>
             <li><Link to="/privacy-policy">Privacy Policy</Link></li>
             <li><Link to="/terms">Terms & Conditions</Link></li>
-            <li><Link to="/returns">Return & Refund</Link></li>
             <li><Link to="/shipping">Shipping Policy</Link></li>
           </ul>
         </div>
@@ -68,10 +69,7 @@ function Footer() {
         <div className="footer-section">
           <h4>Newsletter</h4>
           <p>Subscribe to get special offers and updates</p>
-          <form className="newsletter-form">
-            <input type="email" placeholder="Enter your email" />
-            <button type="submit">Subscribe</button>
-          </form>
+          <NewsletterForm />
         </div>
       </div>
 
@@ -79,6 +77,57 @@ function Footer() {
         <p>&copy; {new Date().getFullYear()} ShopSwift. All rights reserved.</p>
       </div>
     </footer>
+  );
+}
+
+function NewsletterForm() {
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage("");
+
+    if (!email.trim()) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const res = await API.post("/newsletter/subscribe", { email: email.trim() });
+      setMessage(res.data.message || "Subscribed!");
+      setEmail("");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (error) {
+      setMessage(error.response?.data?.error || "Failed to subscribe");
+      setTimeout(() => setMessage(""), 3000);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <form className="newsletter-form" onSubmit={handleSubmit}>
+        <input 
+          type="email" 
+          placeholder="Enter your email" 
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={submitting}
+          required
+        />
+        <button type="submit" disabled={submitting}>
+          {submitting ? "..." : "Subscribe"}
+        </button>
+      </form>
+      {message && (
+        <div className="footer-newsletter-message">
+          {message}
+        </div>
+      )}
+    </>
   );
 }
 
