@@ -12,7 +12,6 @@
 
 .logo-container.default {
   justify-content: center;
-  margin-bottom: 25px;
 }
 
 .logo-container.navbar {
@@ -26,6 +25,10 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.logo-container.default .logo-icon {
+  width: 120px;
 }
 
 .logo-container.navbar .logo-icon {

@@ -115,6 +115,22 @@
   font-size: 14px;
 }
 
+.address-form .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.address-form input.error {
+  border-color: #dc2626;
+}
+
+.address-form .error-message {
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 5px;
+  display: block;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -285,6 +301,13 @@
   margin: 4px 0;
   font-size: 14px;
   color: #666;
+}
+
+.order-item .item-variants {
+  font-size: 12px;
+  color: #64748b;
+  margin: 2px 0;
+  font-weight: 400;
 }
 
 .order-item span {

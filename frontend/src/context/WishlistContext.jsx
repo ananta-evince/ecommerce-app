@@ -3,6 +3,7 @@ import API from "../api/api";
 import { useAuth } from "./AuthContext";
 
 const WishlistContext = createContext();
+export const LoginPopupContext = createContext();
 
 export const useWishlist = () => {
   const context = useContext(WishlistContext);
@@ -16,6 +17,7 @@ export const WishlistProvider = ({ children }) => {
   const { user } = useAuth();
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -37,19 +39,24 @@ export const WishlistProvider = ({ children }) => {
     }
   };
 
-  const addToWishlist = async (product) => {
+  const addToWishlist = async (product, onError) => {
     if (!user) {
-      alert("Please login to add items to wishlist");
-      return;
+      setShowLoginPopup(true);
+      return { success: false, error: "Please login to add to wishlist" };
     }
     try {
       await API.post("/wishlist", { productId: product.id });
       setWishlist((prev) => [...prev, product]);
+      return { success: true };
     } catch (error) {
       console.error("Error adding to wishlist:", error);
-      if (error.response?.status === 400) {
-        alert("Product already in wishlist");
+      const errorMessage = error.response?.status === 400 
+        ? "Product already in wishlist" 
+        : "Failed to add to wishlist";
+      if (onError) {
+        onError(errorMessage);
       }
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -83,7 +90,9 @@ export const WishlistProvider = ({ children }) => {
         loading,
       }}
     >
-      {children}
+      <LoginPopupContext.Provider value={{ showLoginPopup, setShowLoginPopup }}>
+        {children}
+      </LoginPopupContext.Provider>
     </WishlistContext.Provider>
   );
 };

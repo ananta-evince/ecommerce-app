@@ -67,4 +67,3 @@ router.delete("/users/:id", authenticateToken, adminOnly, async (req, res) => {
 });
 
 module.exports = router;
-

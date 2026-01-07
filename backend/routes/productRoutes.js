@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-    const { category, brand, minPrice, maxPrice, minRating, search } = req.query;
+    const { category, brand, minPrice, maxPrice, minRating, search, promotional } = req.query;
     const where = { isActive: true };
 
     if (category && category !== "all") where.category = category;
@@ -18,6 +18,7 @@ router.get("/", async (req, res) => {
     if (minPrice) where.price = { ...where.price, [Op.gte]: parseFloat(minPrice) };
     if (maxPrice) where.price = { ...where.price, [Op.lte]: parseFloat(maxPrice) };
     if (minRating) where.rating = { [Op.gte]: parseFloat(minRating) };
+    if (promotional === "true") where.isPromotional = true;
     if (search) {
       where[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
