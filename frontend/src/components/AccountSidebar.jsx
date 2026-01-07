@@ -17,7 +17,7 @@ function AccountSidebar() {
     if (user?.profilePhoto) {
       return user.profilePhoto.startsWith('http') 
         ? user.profilePhoto 
-        : `${import.meta.env.VITE_API_SERVER_URL || 'http://localhost:5000'}${user.profilePhoto}`;
+        : `${import.meta.env.VITE_API_SERVER_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${user.profilePhoto}`;
     }
     return null;
   };

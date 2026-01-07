@@ -41,7 +41,7 @@ function Profile() {
       if (user.profilePhoto) {
         const photoUrl = user.profilePhoto.startsWith('http') 
           ? user.profilePhoto 
-          : `${import.meta.env.VITE_API_SERVER_URL || 'http://localhost:5000'}${user.profilePhoto}`;
+          : `${import.meta.env.VITE_API_SERVER_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${user.profilePhoto}`;
         setPhotoPreview(photoUrl);
       } else {
         setPhotoPreview(null);
@@ -239,7 +239,7 @@ function Profile() {
     if (user?.profilePhoto) {
       const photoUrl = user.profilePhoto.startsWith('http') 
         ? user.profilePhoto 
-        : `${import.meta.env.VITE_API_SERVER_URL || 'http://localhost:5000'}${user.profilePhoto}`;
+          : `${import.meta.env.VITE_API_SERVER_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${user.profilePhoto}`;
       setPhotoPreview(photoUrl);
     } else {
       setPhotoPreview(null);
