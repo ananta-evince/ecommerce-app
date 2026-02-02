@@ -5,6 +5,7 @@
   margin-top: 0;
   width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .footer-container {
@@ -13,6 +14,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 40px;
+  overflow-x: hidden;
 }
 
 .footer-section h3 {
@@ -106,23 +108,26 @@
   border-color: #22c55e;
 }
 
-.newsletter-form button {
+.footer .newsletter-form button {
   padding: 12px 24px;
   background: #22c55e;
-  color: white;
-  border: none;
+  color: #fff;
+  border: 2px solid transparent;
   border-radius: 8px;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.newsletter-form button:hover:not(:disabled) {
-  background: black;
-  color: white;
+.footer .newsletter-form button:hover:not(:disabled) {
+  background: #16a34a;
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
 }
 
-.newsletter-form button:disabled {
+.footer .newsletter-form button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -176,7 +181,7 @@
     flex-direction: column;
   }
 
-  .newsletter-form button {
+  .footer .newsletter-form button {
     width: 100%;
   }
 }

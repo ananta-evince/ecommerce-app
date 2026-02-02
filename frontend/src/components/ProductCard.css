@@ -30,7 +30,7 @@
 .product-image {
   position: relative;
   width: 100%;
-  height: 200px;
+  aspect-ratio: 1;
   background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
   display: flex;
   align-items: center;
@@ -42,6 +42,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   transition: transform 0.3s ease;
 }
 
@@ -239,10 +240,6 @@
     border-radius: 10px;
   }
 
-  .product-image {
-    height: 140px;
-  }
-
   .product-info {
     padding: 12px;
     gap: 5px;
@@ -312,10 +309,6 @@
 @media (max-width: 480px) {
   .product-card {
     border-radius: 8px;
-  }
-
-  .product-image {
-    height: 130px;
   }
 
   .product-info {

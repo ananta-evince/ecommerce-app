@@ -1,13 +1,13 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-require("dotenv").config();
+
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const sequelize = require("./config/database");
 
 const app = express();
 
-// CORS configuration
 const corsOptions = {
   origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "http://localhost:5173",
   credentials: true,

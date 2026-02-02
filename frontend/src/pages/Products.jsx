@@ -38,6 +38,8 @@ function Products() {
   const availability = searchParams.get("availability") || "all";
   const sortBy = searchParams.get("sort") || "popular";
   const page = parseInt(searchParams.get("page") || "1", 10);
+  const perPageParam = searchParams.get("perPage") || "12";
+  const productsPerPage = [12, 24, 48].includes(parseInt(perPageParam, 10)) ? parseInt(perPageParam, 10) : 12;
 
   // Local state for filter form (before applying)
   const [localFilters, setLocalFilters] = useState({
@@ -48,8 +50,6 @@ function Products() {
     rating: rating,
     availability: availability
   });
-
-  const productsPerPage = 12;
 
   useEffect(() => {
     fetchProducts();
@@ -115,14 +115,16 @@ function Products() {
 
   const updateURL = (updates) => {
     const newParams = new URLSearchParams(searchParams);
+    const isDefault = (key, value) => {
+      if (value === "all" || value === "0" || value === "" || value === null) return true;
+      if (key === "maxPrice" && value === "100000") return true;
+      return false;
+    };
     Object.entries(updates).forEach(([key, value]) => {
-      if (value === "all" || value === "0" || value === "" || value === null) {
-        newParams.delete(key);
-      } else {
-        newParams.set(key, value);
-      }
+      if (isDefault(key, value)) newParams.delete(key);
+      else newParams.set(key, value);
     });
-    newParams.delete("page");
+    if (!updates.hasOwnProperty("page")) newParams.delete("page");
     setSearchParams(newParams);
   };
 
@@ -233,14 +235,30 @@ function Products() {
         <PageHeader categoryName={categoryName} />
         
         <FilterSortBar 
-          resultsCount={filteredProducts.length}
+          totalCount={filteredProducts.length}
           startIndex={startIndex + 1}
           endIndex={Math.min(startIndex + productsPerPage, filteredProducts.length)}
+          productsPerPage={productsPerPage}
           sortBy={sortBy}
           onSortChange={(value) => updateURL({ sort: value })}
+          onPerPageChange={(n) => updateURL({ perPage: String(n) })}
           onFiltersToggle={() => setFiltersOpen(!filtersOpen)}
           filtersOpen={filtersOpen}
         />
+        {hasActiveFilters && (
+          <ActiveFilterChips
+            category={category}
+            brand={brand}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            rating={rating}
+            availability={availability}
+            categories={categories}
+            brands={brands}
+            onClearOne={updateURL}
+            onClearAll={clearFilters}
+          />
+        )}
 
         <div className="products-layout">
           <FiltersSidebar
@@ -310,7 +328,7 @@ function PageHeader({ categoryName }) {
   );
 }
 
-function FilterSortBar({ resultsCount, startIndex, endIndex, sortBy, onSortChange, onFiltersToggle, filtersOpen }) {
+function FilterSortBar({ totalCount, startIndex, endIndex, productsPerPage, sortBy, onSortChange, onPerPageChange, onFiltersToggle, filtersOpen }) {
   return (
     <div className="filter-sort-bar">
       <div className="filter-sort-left">
@@ -325,24 +343,82 @@ function FilterSortBar({ resultsCount, startIndex, endIndex, sortBy, onSortChang
           <span>Filters</span>
         </button>
         <p className="results-count">
-          Showing {startIndex}-{endIndex} of {resultsCount} products
+          <span className="results-total">{totalCount} {totalCount === 1 ? "product" : "products"}</span>
+          {totalCount > 0 && (
+            <span className="results-range"> — Showing {startIndex}-{endIndex}</span>
+          )}
         </p>
       </div>
       <div className="filter-sort-right">
-        <label htmlFor="sort-select" className="sort-label">Sort by:</label>
-        <select
-          id="sort-select"
-          className="sort-select"
-          value={sortBy}
-          onChange={(e) => onSortChange(e.target.value)}
-        >
-          <option value="popular">Popular</option>
-          <option value="price-low">Price: Low to High</option>
-          <option value="price-high">Price: High to Low</option>
-          <option value="newest">Newest</option>
-          <option value="rating">Highest Rated</option>
-        </select>
+        <div className="filter-sort-group">
+          <label htmlFor="per-page-select" className="sort-label">Show:</label>
+          <select
+            id="per-page-select"
+            className="sort-select per-page-select"
+            value={productsPerPage}
+            onChange={(e) => onPerPageChange(Number(e.target.value))}
+          >
+            <option value={12}>12</option>
+            <option value={24}>24</option>
+            <option value={48}>48</option>
+          </select>
+          <span className="per-page-suffix">per page</span>
+        </div>
+        <div className="filter-sort-group">
+          <label htmlFor="sort-select" className="sort-label">Sort by:</label>
+          <select
+            id="sort-select"
+            className="sort-select"
+            value={sortBy}
+            onChange={(e) => onSortChange(e.target.value)}
+          >
+            <option value="popular">Popular</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+            <option value="newest">Newest</option>
+            <option value="rating">Highest Rated</option>
+          </select>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ActiveFilterChips({ category, brand, minPrice, maxPrice, rating, availability, categories, brands, onClearOne, onClearAll }) {
+  const chips = [];
+  if (category && category !== "all") {
+    const label = categories.includes(category) ? category.charAt(0).toUpperCase() + category.slice(1) : category;
+    chips.push({ key: "category", label: `Category: ${label}` });
+  }
+  if (brand && brand !== "all") {
+    const label = brands.includes(brand) ? brand.charAt(0).toUpperCase() + brand.slice(1) : brand;
+    chips.push({ key: "brand", label: `Brand: ${label}` });
+  }
+  if (minPrice !== "0" || maxPrice !== "100000") {
+    chips.push({ key: "price", label: `Price: ₹${minPrice} – ₹${maxPrice}` });
+  }
+  if (rating && rating !== "0") chips.push({ key: "rating", label: `${rating}+ Stars` });
+  if (availability === "in-stock") chips.push({ key: "availability", label: "In Stock" });
+  if (availability === "out-of-stock") chips.push({ key: "availability", label: "Out of Stock" });
+  if (chips.length === 0) return null;
+
+  const clearOne = (key) => {
+    if (key === "category") onClearOne({ category: "all" });
+    else if (key === "brand") onClearOne({ brand: "all" });
+    else if (key === "price") onClearOne({ minPrice: "0", maxPrice: "100000" });
+    else if (key === "rating") onClearOne({ rating: "0" });
+    else if (key === "availability") onClearOne({ availability: "all" });
+  };
+
+  return (
+    <div className="active-filter-chips">
+      {chips.map(({ key, label }) => (
+        <span key={`${key}-${label}`} className="filter-chip">
+          {label}
+          <button type="button" className="filter-chip-remove" onClick={() => clearOne(key)} aria-label={`Remove ${label}`}>×</button>
+        </span>
+      ))}
+      <button type="button" className="filter-chip-clear-all" onClick={onClearAll}>Clear all</button>
     </div>
   );
 }
