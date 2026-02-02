@@ -42,10 +42,9 @@ function App() {
             <ScrollToTop />
             <LoginPopupWrapper />
             <Routes>
-              <Route path="/" element={<Navigate to="/home" replace />} />
-              
               {/* Public Pages */}
-              <Route path="/home" element={<PublicRoute><Home /></PublicRoute>} />
+              <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
+              <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="/products" element={<PublicRoute><Products /></PublicRoute>} />
               <Route path="/product/:id" element={<PublicRoute><ProductDetails /></PublicRoute>} />
               <Route path="/search" element={<PublicRoute><Search /></PublicRoute>} />

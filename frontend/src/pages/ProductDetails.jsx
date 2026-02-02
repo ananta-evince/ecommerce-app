@@ -314,7 +314,7 @@ function ProductDetails() {
 function Breadcrumbs({ product }) {
   return (
     <div className="breadcrumbs">
-      <Link to="/home" className="breadcrumb-link">Home</Link>
+      <Link to="/" className="breadcrumb-link">Home</Link>
       <span className="breadcrumb-separator">/</span>
       <Link to="/products" className="breadcrumb-link">Products</Link>
       {product.category && (

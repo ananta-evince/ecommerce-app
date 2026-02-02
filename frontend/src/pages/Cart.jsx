@@ -102,7 +102,7 @@ function Cart() {
           </div>
           <h2>Your cart is empty</h2>
           <p>Add some products to get started!</p>
-          <button onClick={() => navigate("/home")} className="shop-button">
+          <button onClick={() => navigate("/")} className="shop-button">
             Continue Shopping
           </button>
         </div>

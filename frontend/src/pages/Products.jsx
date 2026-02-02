@@ -310,7 +310,7 @@ function PageHeader({ categoryName }) {
   return (
     <div className="page-header">
       <div className="breadcrumbs">
-        <Link to="/home" className="breadcrumb-link">Home</Link>
+        <Link to="/" className="breadcrumb-link">Home</Link>
         <span className="breadcrumb-separator">/</span>
         <span className="breadcrumb-current">Products</span>
         {categoryName !== "All Products" && (

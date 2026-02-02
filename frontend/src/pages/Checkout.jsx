@@ -232,7 +232,7 @@ function Checkout() {
         <Navbar />
         <div className="empty-cart">
           <h2>Your cart is empty</h2>
-          <button onClick={() => navigate("/home")}>Continue Shopping</button>
+          <button onClick={() => navigate("/")}>Continue Shopping</button>
         </div>
       </div>
     );

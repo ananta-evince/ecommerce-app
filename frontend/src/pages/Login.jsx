@@ -72,7 +72,7 @@ function Login() {
       }
       
       login(token, res.data.user);
-      navigate("/home");
+      navigate("/");
     } catch (error) {
       const errorMessage =
         error.response?.data?.error || "Login failed. Please try again.";

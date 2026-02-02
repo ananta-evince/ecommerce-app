@@ -93,7 +93,7 @@ function OrderConfirmation() {
         <Navbar />
         <div className="empty-state">
           <h2>Order not found</h2>
-          <button onClick={() => navigate("/home")}>Back to Home</button>
+          <button onClick={() => navigate("/")}>Back to Home</button>
         </div>
       </div>
     );
@@ -231,7 +231,7 @@ function OrderConfirmation() {
                 <button onClick={() => navigate("/account/orders")} className="view-orders-btn primary">
                   View My Orders
                 </button>
-                <button onClick={() => navigate("/home")} className="continue-shopping-btn secondary">
+                <button onClick={() => navigate("/")} className="continue-shopping-btn secondary">
                   Continue Shopping
                 </button>
               </div>

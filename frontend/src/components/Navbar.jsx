@@ -18,8 +18,8 @@ function Navbar({ onSearch }) {
   const menuRef = useRef(null);
 
   const isActive = (path) => {
-    if (path === "/home") {
-      return location.pathname === "/home" || location.pathname === "/";
+    if (path === "/") {
+      return location.pathname === "/";
     }
     return location.pathname.startsWith(path);
   };
@@ -99,7 +99,7 @@ function Navbar({ onSearch }) {
                 )}
               </svg>
             </button>
-            <Link to="/home" className="navbar-logo-link">
+            <Link to="/" className="navbar-logo-link">
               <img 
                 src="/logo.png" 
                 alt="ShopSwift" 
@@ -109,7 +109,7 @@ function Navbar({ onSearch }) {
           </div>
 
           <div className="navbar-menu">
-            <Link to="/home" className={`nav-menu-item ${isActive("/home") ? "active" : ""}`}>Home</Link>
+            <Link to="/" className={`nav-menu-item ${isActive("/") ? "active" : ""}`}>Home</Link>
             <Link to="/products" className={`nav-menu-item ${isActive("/products") ? "active" : ""}`}>Products</Link>
             <Link to="/about" className={`nav-menu-item ${isActive("/about") ? "active" : ""}`}>About</Link>
             <Link to="/contact" className={`nav-menu-item ${isActive("/contact") ? "active" : ""}`}>Contact</Link>
@@ -249,8 +249,8 @@ function Navbar({ onSearch }) {
           
           <div className="mobile-nav-menu">
             <Link 
-              to="/home" 
-              className={`mobile-nav-item ${isActive("/home") ? "active" : ""}`} 
+              to="/" 
+              className={`mobile-nav-item ${isActive("/") ? "active" : ""}`} 
               onClick={() => setMobileMenuOpen(false)}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

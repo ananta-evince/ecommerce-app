@@ -178,7 +178,7 @@ function SearchPageHeader({ query, resultCount }) {
   return (
     <div className="search-page-header">
       <div className="breadcrumbs">
-        <Link to="/home" className="breadcrumb-link">Home</Link>
+        <Link to="/" className="breadcrumb-link">Home</Link>
         <span className="breadcrumb-separator">/</span>
         <span className="breadcrumb-current">Search</span>
         {query && (
