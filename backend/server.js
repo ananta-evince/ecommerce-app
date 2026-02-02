@@ -30,9 +30,16 @@ app.use("/api/newsletter", require("./routes/newsletterRoutes"));
 app.use("/api/coupons", require("./routes/couponRoutes"));
 
 sequelize
-  .sync({ alter: true })
-  .then(() => console.log("MySQL Connected via phpMyAdmin"))
-  .catch(err => console.log(err));
+  .authenticate()
+  .then(() => {
+    console.log("MySQL: connection OK");
+    return sequelize.sync({ alter: true });
+  })
+  .then(() => console.log("MySQL: schema synced"))
+  .catch((err) => {
+    console.error("MySQL connection failed:", err.message);
+    if (err.original) console.error("Detail:", err.original.message);
+  });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on ${PORT}`));
