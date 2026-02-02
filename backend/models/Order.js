@@ -6,7 +6,7 @@ const Order = sequelize.define("Order", {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: "Users",
+      model: "users",
       key: "id",
     },
   },
@@ -58,6 +58,8 @@ const Order = sequelize.define("Order", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+}, {
+  tableName: "orders",
 });
 
 module.exports = Order;

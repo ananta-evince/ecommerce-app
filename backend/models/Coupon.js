@@ -71,6 +71,8 @@ const Coupon = sequelize.define("Coupon", {
     type: DataTypes.ENUM("all", "new_users", "existing_users"),
     defaultValue: "all",
   },
+}, {
+  tableName: "coupons",
 });
 
 module.exports = Coupon;

@@ -37,6 +37,8 @@ const User = sequelize.define("User", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+}, {
+  tableName: "users",
 });
 
 User.beforeCreate(async (user) => {

@@ -7,7 +7,7 @@ const Wishlist = sequelize.define("Wishlist", {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: "Users",
+      model: "users",
       key: "id",
     },
   },
@@ -15,10 +15,12 @@ const Wishlist = sequelize.define("Wishlist", {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: "Products",
+      model: "products",
       key: "id",
     },
   },
+}, {
+  tableName: "wishlists",
 });
 
 Wishlist.belongsTo(Product, { foreignKey: "productId", as: "Product" });

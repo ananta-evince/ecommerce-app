@@ -50,7 +50,8 @@ const Contact = sequelize.define("Contact", {
     allowNull: true
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  tableName: "contacts",
 });
 
 module.exports = Contact;

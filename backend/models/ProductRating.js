@@ -18,7 +18,7 @@ const ProductRating = sequelize.define("ProductRating", {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: "Users",
+      model: "users",
       key: "id"
     }
   },
@@ -26,10 +26,12 @@ const ProductRating = sequelize.define("ProductRating", {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: "Products",
+      model: "products",
       key: "id"
     }
   }
+}, {
+  tableName: "productratings",
 });
 
 module.exports = ProductRating;

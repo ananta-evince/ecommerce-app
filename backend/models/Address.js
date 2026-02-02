@@ -6,7 +6,7 @@ const Address = sequelize.define("Address", {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: "Users",
+      model: "users",
       key: "id",
     },
   },
@@ -46,6 +46,8 @@ const Address = sequelize.define("Address", {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+}, {
+  tableName: "addresses",
 });
 
 module.exports = Address;

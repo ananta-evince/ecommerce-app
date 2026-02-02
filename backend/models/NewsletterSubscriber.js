@@ -18,6 +18,8 @@ const NewsletterSubscriber = sequelize.define("NewsletterSubscriber", {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
   }
+}, {
+  tableName: "newslettersubscribers",
 });
 
 module.exports = NewsletterSubscriber;

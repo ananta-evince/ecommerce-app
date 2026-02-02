@@ -27,6 +27,8 @@ const Testimonial = sequelize.define("Testimonial", {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   }
+}, {
+  tableName: "testimonials",
 });
 
 module.exports = Testimonial;
