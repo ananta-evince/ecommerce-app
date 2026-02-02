@@ -68,6 +68,24 @@ Push your code to GitHub first, then follow these steps for each service.
 
 ---
 
+## Troubleshooting: DB not connecting (no products on frontend)
+
+1. **Check backend health**  
+   Open: `https://YOUR-BACKEND-URL.onrender.com/api/health`  
+   - If you see `{"ok":true,"db":"connected"}` → DB is fine; if products still missing, check Render **Logs** for errors.  
+   - If you see `{"ok":false,"db":"failed","error":"..."}` → use the `error` message below.
+
+2. **Variable names on Render**  
+   In backend **Environment**, use exactly: `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT` (no spaces, no quotes in the value field).
+
+3. **Railway MySQL**  
+   Copy values from Railway → MySQL → **Variables** or **Connect** and paste into Render. If connection still fails, add on Render: `DB_SSL` = `true`, save, and redeploy.
+
+4. **Render Logs**  
+   Backend service → **Logs**. Look for `MySQL connection failed:` or `Detail:` to see the exact error (e.g. wrong password, unknown database, timeout).
+
+---
+
 ## Quick reference
 
 | Service  | Root Directory | Build Command              | Start / Publish      |

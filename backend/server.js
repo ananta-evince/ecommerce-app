@@ -29,6 +29,12 @@ app.use("/api/product-ratings", require("./routes/productRatingRoutes"));
 app.use("/api/newsletter", require("./routes/newsletterRoutes"));
 app.use("/api/coupons", require("./routes/couponRoutes"));
 
+app.get("/api/health", (req, res) => {
+  sequelize.authenticate()
+    .then(() => res.json({ ok: true, db: "connected" }))
+    .catch((err) => res.status(503).json({ ok: false, db: "failed", error: err.message }));
+});
+
 sequelize
   .authenticate()
   .then(() => {
