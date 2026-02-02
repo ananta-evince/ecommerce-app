@@ -25,6 +25,12 @@ import Addresses from "./pages/Addresses";
 import Orders from "./pages/Orders";
 import Wishlist from "./pages/Wishlist";
 import Policy from "./pages/Policy";
+import RoleProtectedRoute from "./components/RoleProtectedRoute";
+import AdminLayout from "./pages/admin/AdminLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 function App() {
   return (
@@ -67,6 +73,14 @@ function App() {
               <Route path="/account/addresses" element={<ProtectedRoute><Addresses /></ProtectedRoute>} />
               <Route path="/account/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
               <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
+
+              {/* Admin (role-protected) */}
+              <Route path="/admin" element={<RoleProtectedRoute allowedRoles={["admin"]}><AdminLayout /></RoleProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="users" element={<AdminUsers />} />
+              </Route>
             </Routes>
           </BrowserRouter>
           </ToastProvider>

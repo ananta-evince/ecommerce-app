@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../api/api";
 import { useToast } from "../components/ToastContainer";
+import { useAuth } from "../context/AuthContext";
 import Logo from "../components/Logo";
 import "./Auth.css";
 
 function Signup() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { login } = useAuth();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -100,9 +102,10 @@ function Signup() {
       const { confirmPassword, ...signupData } = form;
       const res = await API.post("/auth/signup", signupData);
       showToast(res.data.message || "Signup successful", "success");
-      setTimeout(() => {
-        navigate("/login");
-      }, 1000);
+      if (res.data.token && res.data.user) {
+        login(res.data.token, res.data.user);
+      }
+      setTimeout(() => navigate("/"), 800);
     } catch (error) {
       const errorMessage =
         error.response?.data?.error || "Signup failed. Please try again.";

@@ -137,3 +137,6 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Legacy separate admin app (admin is in frontend/src/pages/admin)
+admin/

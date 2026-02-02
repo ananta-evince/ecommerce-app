@@ -108,10 +108,96 @@
   margin: 0;
 }
 
+.results-total {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.results-range {
+  color: #666;
+}
+
 .filter-sort-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-sort-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.per-page-select {
+  min-width: 60px;
+}
+
+.per-page-suffix {
+  font-size: 13px;
+  color: #666;
+}
+
+.active-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #166534;
+}
+
+.filter-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: rgba(22, 101, 52, 0.15);
+  border-radius: 50%;
+  font-size: 16px;
+  line-height: 1;
+  color: #166534;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.filter-chip-remove:hover {
+  background: #22c55e;
+  color: #fff;
+}
+
+.filter-chip-clear-all {
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.filter-chip-clear-all:hover {
+  border-color: #22c55e;
+  color: #22c55e;
 }
 
 .sort-label {
