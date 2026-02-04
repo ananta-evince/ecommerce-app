@@ -138,5 +138,5 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Only ignore root-level admin folder; frontend/src/pages/admin is the app admin UI
-/admin/
+# Legacy separate admin app (admin is in frontend/src/pages/admin)
+admin/
